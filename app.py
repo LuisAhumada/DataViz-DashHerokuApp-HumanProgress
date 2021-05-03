@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -41,7 +36,8 @@ pd.set_option('display.max_columns', None)
 import seaborn as sns
 
 
-
+app = dash.Dash(__name__)
+server = app.server
 
 
 
