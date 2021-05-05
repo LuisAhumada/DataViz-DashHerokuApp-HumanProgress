@@ -31,7 +31,7 @@ for i in pages:
 print(len(results))
 print(results[6])
 
-
+#Data scraping that goes over each HumanProgress page and download csv files.
 for j in results:
     try:
         URL = j

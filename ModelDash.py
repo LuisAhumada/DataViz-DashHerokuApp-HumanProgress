@@ -23,7 +23,7 @@ import seaborn as sns
 
 # pd.set_option('display.max_rows', None)
 
-
+#Model function applied to Heroku app: humanprogressorg.herokuapp.com
 sns.set()
 
 def LinReg(y, x1, x2, *kwargs):

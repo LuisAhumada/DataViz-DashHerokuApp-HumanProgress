@@ -4,40 +4,54 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import numpy.linalg as LA
 import statsmodels.api as sm
+import seaborn as sns
+
+import tensorflow as tf
+
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.layers.experimental import preprocessing
+
+print(tf.__version__)
 
 pd.set_option('display.max_columns', None)
 # pd.set_option('display.max_rows', None)
 
+np.set_printoptions(precision=3, suppress=True)
 
-## 1- Load the time series data called auto.csv
 
-df = pd.read_csv("/Users/luisabrigo/HumanProgress/result.csv", header=0, parse_dates=[0])
+# Models
+#1. Multiple Linear Regression using statsmodel
+#2. DNN Regression using Tensorflow
 
+##################################################################
+#LOADING DATA
+##################################################################
+
+df = pd.read_csv("/Users/luisabrigo/humanprogressorg/result.csv", header=0, parse_dates=[0])
 df = df.dropna()
 
+df_Y = df["life-expectancy"]
 
-df_Y = df["life-expectancyNotFilledFilled"]
-
-df_X = df.drop("life-expectancyNotFilledFilled", 1)
+df_X = df.drop("life-expectancy", 1)
 df_X = df_X.drop(labels=df.columns[:2], axis=1)
 
 print(df_Y)
 
+##################################################################
+#TRAIN TEST SPLIT
+##################################################################
 
-# print(df_X)
-
-# print(df1.head())
-# print(df1.dtypes)
-
-
-#Train-test split
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(df_X, df_Y, shuffle=True, test_size=0.2)
+
+################################################
+#EDA
+################################################
 
 #Seaborn Heatmap
 import seaborn as sns
 corr = df_X.corr()
 corr = df.corr()
-
 
 plt.subplots(figsize=(15,15))
 sns.heatmap(corr.T, annot=True, cmap="YlGnBu")
@@ -45,61 +59,36 @@ plt.tight_layout(pad=2, w_pad=0.5, h_pad=0.5)
 plt.title("Correlation Matrix")
 plt.show()
 
+################################################
+# COLINEARITY DETECTION
+################################################
+
 ##Collinearity detection:
-# a. Perform SVD analysis on the original feature space and write down your observation if colinearity exists. Justify your answer.
-# b. Calculate the condition number and write down your observation if co-linearity exists
+#Converts dataframe to numpy matrix
+X = Xtrain.values
+print("Shape of X is:", X.shape)
 
-# print(df1.shape)
+#Matrix multiplication
+H = np.matmul(X.T, X)
+print("Shape of H is:", H.shape)
 
-# #Converts dataframe to numpy matrix
-# X = Xtrain.values
-# print("Shape of X is:", X.shape)
-# print(X)
-#
-# #Matrix multiplication
-# H = np.matmul(X.T, X)
-# print("Shape of H is:", H.shape)
-#
-# # Single Value Decomposition. If values are close to zero means the variables are correlated (multicolinearity)
-# s, d, v = np.linalg.svd(H)
-# print("Singular values:", d)
-#
-# #Condition Number
-# print("Condition number for X is:", LA.cond(X))
-# print("Colinearity is Severe")
+# Single Value Decomposition. If values are close to zero means the variables are correlated (multicolinearity)
+s, d, v = np.linalg.svd(H)
+print("Singular values:", d)
 
-
-# Using Python, construct matrix X and Y. Then use the x-train and y-train dataset and estimate the
-# regression model unknown coefficients using the Normal equation (LSE method, above equation)
+#Condition Number
+print("Condition number for X is:", LA.cond(X))
+print("Colinearity is Severe")
 
 
 
-# Converts train set to numpy matrix
-# Xt = Xtrain.values
-# Yt = Ytrain.values
-#
-# print("Shape of Xtrain is:", Xt.shape)
-# print("----------")
-#
-# print("Shape of Ytrain is:", Yt.shape)
-
-# Ordinary least square regression using Numpy Linalg
-# inv = np.linalg.inv(H)
-# beta = np.matmul(np.matmul(inv, Xt.T), Yt)
-# print("Betas:", beta)
-
-
-
-# model = sm.OLS(Ytrain.astype(float), Xtrain.astype(float)).fit()
-# print(model.summary())
+################################################
+# FEATURE SELECTION
+################################################
 
 # Adds a column called "const"
 Xtrain = sm.add_constant(Xtrain)
 Xtest = sm.add_constant(Xtest)
-
-
-
-
 
 #Using python, statsmodels package and OLS function, find the unknown coefficients. C
 
@@ -110,89 +99,52 @@ print(model.summary())
 # dimension. You need to use the AIC, BIC and Adjusted R2 as a predictive accuracy for your analysis.
 
 # remove economically-acNotFilledFilled
-x_opt = Xtrain.drop("economically-acNotFilledFilled", 1)
+x_opt = Xtrain.drop("child-labor", 1)
 ols = sm.OLS(Ytrain, x_opt).fit()
 print(ols.summary())
 
 # # remove human-developmeNotFilledFilled
-x_opt = x_opt.drop("human-developmeNotFilledFilled", 1)
+x_opt = x_opt.drop("hdi", 1)
 ols = sm.OLS(Ytrain, x_opt).fit()
 print(ols.summary())
 
-
 # # remove share-of-peopleNotFilledFille
-x_opt = x_opt.drop("share-of-peopleNotFilledFilled", 1)
+x_opt = x_opt.drop("life-satisfaction", 1)
 ols = sm.OLS(Ytrain, x_opt).fit()
 print(ols.summary())
 
 # # remove co2-emissions-pNotFilledFilled
-x_opt = x_opt.drop("co2-emissions-pNotFilledFilled", 1)
+x_opt = x_opt.drop("co2-emissions", 1)
 ols = sm.OLS(Ytrain, x_opt).fit()
 print(ols.summary())
 
 # # remove gdp-annual-growNotFilledFilled
-x_opt = x_opt.drop("gdp-annual-growNotFilledFilled", 1)
+x_opt = x_opt.drop("gdp-annual-growth", 1)
 ols = sm.OLS(Ytrain, x_opt).fit()
 print(ols.summary())
 
 
+################################################
+# MULTIPLE LINEAR REGRESSION
+################################################
+
 # Edit the test set
-Xtest_new = Xtest[["const", "dtp3-diphtheriaNotFilledFilled",
-    "population-usinNotFilledFilled", "homicide-rate-pNotFilledFilled",
-    "gdp-per-capita-NotFilledFilled", "mean-years-of-pNotFilledFilled",
-    "mortality-rate-NotFilledFilled", "access-to-electNotFilledFilled", "poverty-headcouNotFilledFilled"]]
+Xtest_new = Xtest[["const", "vaccination",
+    "improved-water-sources", "homicide-rate",
+    "gdp-per-capita", "mean-years-of-schooling",
+    "child-mortality", "access-to-electricity", "poverty"]]
 
 
 Ypred = ols.predict(x_opt)
-
 Yforecast = ols.predict(Xtest_new)
 print(Yforecast)
 
 
-# plt.plot(Xtrain.index, Ytrain, label="y")
-# plt.plot(Xtest.index, Ytest, label="Y_test")
-# plt.plot(Xtest.index, Yforecast, label="Y_forecast")
-# plt.legend(loc='best')
-# plt.xlabel("Index")
-# plt.ylabel("Price")
-# plt.title("Price of cars")
-# plt.show()
-#"
-def autocorr(x, lag):
-    '''It returns the autocorrelation function for a given series.'''
-    x = np.array(x)
+################################################
+# RESULTS
+################################################
 
-    ## Proceed to calculate the numerator only for the oservationes given by the length of lag
-    k = range(0,lag+1)
-
-    ## Calculates the mean of the obs in the variable
-    mean = np.mean(x)
-
-    autocorr = []
-    #Calculates a numerator and denominator based on the autocorrelation function formula
-    for i in k:
-        numer = 0
-        for j in range(i, len(x)):
-            numer += (x[j] - mean) * (x[j-i] - mean)
-        denom = np.sum((x - mean) ** 2)
-        autocorr.append(numer / denom)
-    return autocorr
-
-def ACFPlot(x, lags, title):
-    # Limits the plot to the amount of lags given
-    x = x[0:lags+1]
-    # Makes the values go forward and backward (positive and negative)
-    rx = x[::-1]
-    rxx = np.concatenate((rx, x[1:]))
-    lags = [i for i in range(-lags, lags+1)]
-    lags = np.unique(np.sort(lags))
-    plt.figure()
-    plt.stem(lags, rxx)
-    plt.ylabel("Magnitude")
-    plt.xlabel("Lags")
-    plt.title(title)
-    plt.axhspan(-(x[4]), x[4], alpha=.1, color='black')
-    plt.show()
+test_results = {}
 
 def variance(x, k):
     var = np.sqrt((1/(len(x)-k-1))*(np.sum(np.square(x))))
@@ -200,27 +152,17 @@ def variance(x, k):
 
 #Calculates prediciton and forecast error
 p_error = Ytrain - Ypred
-print("This is the prediction error:", p_error)
 print("This is the prediction error variance:", variance(p_error, 4))
 
 f_error = Ytest - Yforecast
-print("This is the forecast error:", f_error)
 print("This is the forecast error variance:", variance(f_error, 4))
-
-# ACF Plots
-ACF_p_error = autocorr(p_error, 20)
-ACFPlot(ACF_p_error, 20, "ACF Prediction Error")
-ACF_f_error = autocorr(f_error, 20)
-ACFPlot(ACF_f_error, 20, "ACF Forecast Error")
 
 
 def MSE(x):
     return np.sum(np.power(x, 2)) / len(x)
 
-
 MSE = MSE(f_error)
 print("MSE Prediction Error: ", round(MSE, 3))
-
 
 # Calculate R2
 def R2(yhat, y_test):
@@ -233,49 +175,176 @@ R2 = R2(Yforecast, Ytest)
 print("The R^2 coefficient is:", round(R2, 3))
 
 
-#
+a = plt.axes(aspect='equal')
+plt.scatter(Ytest, Yforecast)
+plt.xlabel('True Values [LifeExp]')
+plt.ylabel('Predictions [LifeExp]')
+lims = [40, 100]
+plt.title("True vs. Predicted values[LifeExp] - Multiple Linear Regression")
+plt.xlim(lims)
+plt.ylim(lims)
+_ = plt.plot(lims, lims)
+plt.show()
 
-# import statsmodels.formula.api as smf
-#
-# def forward_selected(data, response):
-#     """Linear model designed by forward selection.
-#
-#     Parameters:
-#     -----------
-#     data : pandas DataFrame with all possible predictors and response
-#
-#     response: string, name of response column in data
-#
-#     Returns:
-#     --------
-#     model: an "optimal" fitted statsmodels linear model
-#            with an intercept
-#            selected by forward selection
-#            evaluated by adjusted R-squared
-#     """
-#     remaining = set(data.columns)
-#     remaining.remove(response)
-#     selected = []
-#     current_score, best_new_score = 0.0, 0.0
-#     while remaining and current_score == best_new_score:
-#         scores_with_candidates = []
-#         for candidate in remaining:
-#             formula = "{} ~ {} + 1".format(response,
-#                                            ' + '.join(selected + [candidate]))
-#             score = smf.ols(formula, data).fit().rsquared_adj
-#             scores_with_candidates.append((score, candidate))
-#         scores_with_candidates.sort()
-#         best_new_score, best_candidate = scores_with_candidates.pop()
-#         if current_score < best_new_score:
-#             remaining.remove(best_candidate)
-#             selected.append(best_candidate)
-#             current_score = best_new_score
-#     formula = "{} ~ {} + 1".format(response,
-#                                    ' + '.join(selected))
-#     model = smf.ols(formula, data).fit()
-#     return model
-#
-# model = forward_selected(df1, "price")
-# print(model.model.formula)
-# print(model.rsquared_adj)
+error = Ytest - Yforecast
+plt.hist(error, bins=25)
+plt.xlabel('Prediction Error [LifeExp]')
+plt.title("Residuals Error Histogram - Multiple Linear Regression")
+_ = plt.ylabel('Count')
+plt.show()
 
+test_results['Linear Regression'] = MSE
+
+
+
+##################################################################
+# DEEP NEURAL NETWORK REGRESSION USING TENSORFLOW
+##################################################################
+
+##################################################################
+#LOADING DATA
+##################################################################
+
+df = pd.read_csv("/Users/luisabrigo/humanprogressorg/result.csv", header=0, parse_dates=[0])
+df = df.dropna()
+#Drop year and Countries column
+df = df.drop(labels=df.columns[:2], axis=1)
+
+for i in df.columns:
+    print(i)
+
+# plt.figure(figsize=(15, 15))
+# sns.pairplot(df[['life-expectancy', 'gdp-per-capita', 'improved-water-sources', "vaccination", "homicide-rate", "mean-years-of-schooling", "child-mortality", "access-to-electricity", "co2-emissions", "hdi", "gdp-annual-growth", "life-satisfaction", "child-labor", "poverty" ]], diag_kind='kde')
+# plt.show()
+
+plt.figure(figsize=(10, 10))
+sns.pairplot(df[['life-expectancy', 'gdp-per-capita', "gdp-annual-growth", "vaccination", "child-mortality",  "hdi", ]], diag_kind='kde')
+# plt.title("Scatter Plot - Selected Variables")
+plt.show()
+
+
+plt.figure(figsize=(10, 10))
+sns.pairplot(df[['life-expectancy', "access-to-electricity", 'improved-water-sources', "poverty", "child-labor"]], diag_kind='kde')
+# plt.title("Scatter Plot - Selected Variables")
+plt.show()
+
+plt.figure(figsize=(10, 10))
+sns.pairplot(df[['life-expectancy', "co2-emissions", "mean-years-of-schooling", "homicide-rate","life-satisfaction"]], diag_kind='kde')
+# plt.title("Scatter Plot - Removed Variables")
+plt.show()
+
+
+df = df[['life-expectancy',"vaccination",
+    "improved-water-sources", "homicide-rate",
+    "gdp-per-capita", "mean-years-of-schooling",
+    "child-mortality", "access-to-electricity", "poverty"]]
+
+train_dataset = df.sample(frac=0.8, random_state=0)
+test_dataset = df.drop(train_dataset.index)
+
+
+################################################
+# TRAIN TEST SPLIT
+################################################
+
+train_features = train_dataset.copy()
+test_features = test_dataset.copy()
+train_labels = train_features.pop('life-expectancy')
+test_labels = test_features.pop('life-expectancy')
+
+################################################
+# NORMALIZATION
+################################################
+
+print(train_dataset.describe().transpose()[['mean', 'std']])
+
+#The Normalization layer
+
+normalizer = preprocessing.Normalization()
+normalizer.adapt(np.array(train_features))
+print(normalizer.mean.numpy())
+first = np.array(train_features[:1])
+
+with np.printoptions(precision=2, suppress=True):
+  print('First example:', first)
+  print()
+  print('Normalized:', normalizer(first).numpy())
+
+
+
+#Collect the results on the test set, for later:
+def plot_loss(history):
+  plt.plot(history.history['loss'], label='loss')
+  plt.plot(history.history['val_loss'], label='val_loss')
+  plt.ylim([0, 5000])
+  plt.xlabel('Epoch')
+  plt.ylabel('Error [Life Expectancy]')
+  plt.title("Error vs. Epochs")
+  plt.legend()
+  plt.grid(True)
+
+
+################################################
+# FULL DNN MODEL
+################################################
+
+def model(norm):
+  model = keras.Sequential([
+      norm,
+      layers.Dense(64, activation='relu'),
+      layers.Dense(64, activation='relu'),
+      layers.Dense(1)
+  ])
+
+  model.compile(loss='mean_squared_error',
+                optimizer=tf.keras.optimizers.Adam(0.001))
+  return model
+
+
+dnn_model = model(normalizer)
+dnn_model.summary()
+
+history = dnn_model.fit(
+    train_features, train_labels,
+    validation_split=0.2,
+    verbose=0, epochs=100)
+
+plot_loss(history)
+plt.show()
+
+
+
+################################################
+# PREDICTIONS
+################################################
+
+test_predictions = dnn_model.predict(test_features).flatten()
+
+a = plt.axes(aspect='equal')
+plt.scatter(test_labels, test_predictions)
+plt.xlabel('True Values [LifeExp]')
+plt.ylabel('Predictions [LifeExp]')
+plt.title("True vs. Predicted values[LifeExp] - Deep Neural Network")
+lims = [40, 100]
+plt.xlim(lims)
+plt.ylim(lims)
+_ = plt.plot(lims, lims)
+plt.show()
+
+error = test_predictions - test_labels
+plt.hist(error, bins=25)
+plt.xlabel('Prediction Error [LifeExp]')
+plt.title("Residuals Error Histogram - Deep Neural Network")
+_ = plt.ylabel('Count')
+plt.show()
+
+test_results['Deep Neural Network'] = dnn_model.evaluate(test_features, test_labels, verbose=0)
+
+
+
+################################################
+# PERFORMANCE
+################################################
+
+perf = pd.DataFrame(test_results, index=['Mean Squared Error [MSE]']).T
+print(perf)
